@@ -50,7 +50,7 @@ class LearnedFeature(object):
 		self.final_model = 0
 
 		# ---- Initialize Function approximators for each subspace ---- #
-		if self.LF_dict['subspace_heuristic']:
+		if 'subspace_heuristic' in self.LF_dict and self.LF_dict['subspace_heuristic']:
 			for sub_range in self.subspaces_list:
 				self.models.append(DNN(nb_layers, nb_units, sub_range[1] - sub_range[0]))
 		else:
@@ -80,7 +80,7 @@ class LearnedFeature(object):
 		# Transform the input
 		x = transform_input(x, self.LF_dict)
 
-		if self.LF_dict['subspace_heuristic']: # transform to the model specific subspace input
+		if 'subspace_heuristic' in self.LF_dict and self.LF_dict['subspace_heuristic']: # transform to the model specific subspace input
 			sub_range = self.subspaces_list[model]
 			x = x[:, sub_range[0]:sub_range[1]]
 		y = self.models[model](x)
@@ -204,7 +204,7 @@ class LearnedFeature(object):
 			optimizers.append(optim.Adam(self.models[i].parameters(), lr=learning_rate, weight_decay=weight_decay))
 
 		# unnecessary if only one subspace
-		if len(self.subspaces_list) ==1 or self.LF_dict['subspace_heuristic']:
+		if len(self.subspaces_list) ==1 or ('subspace_heuristic' in self.LF_dict and self.LF_dict['subspace_heuristic']):
 			print("No subspace selection performed.")
 			return optimizers[0]
 
@@ -239,6 +239,7 @@ class LearnedFeature(object):
 					train_losses[i].append(sum(avg_in_loss) / len(avg_in_loss))
 
 				# calculate test loss
+
 				for i, model in enumerate(self.models):
 					avg_in_loss = []
 					for batch in test_loader:
@@ -246,8 +247,8 @@ class LearnedFeature(object):
 						avg_in_loss.append(loss.item())
 					# log over training
 					test_losses[i].append(sum(avg_in_loss) / len(avg_in_loss))
-
-				T.set_postfix(test_loss=[loss[-1] for loss in test_losses])
+				print("lenofloss=" + str([len(loss) for loss in test_losses]))
+				T.set_postfix(test_loss=[loss[-1] for loss in test_losses if loss])
 
 		for idx in range(len(self.models)):
 			self.update_normalizer(idx)

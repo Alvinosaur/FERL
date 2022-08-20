@@ -69,10 +69,12 @@ class PIDController(object):
 			dist_from_start = np.fabs(dist_from_start)
 
 			# Check if every joint is close enough to start configuration.
+			print([dist_from_start[i] < self.epsilon for i in range(7)])
 			is_at_start = all([dist_from_start[i] < self.epsilon for i in range(7)])
 			if is_at_start:
 				self.path_start_T = time.time()
-		else:			
+				print("At start")
+		else:
 			t = time.time() - self.path_start_T
 
 			# Get next target position from position along trajectory.

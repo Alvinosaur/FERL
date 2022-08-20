@@ -1,9 +1,9 @@
 <launch>
 	
-	<rosparam command="load" file="$(find feature_learning)/config/feature_elicitator.yaml" />
+	<rosparam command="load" file="/root/catkin_ws/src/FERL/config/feature_elicitator.yaml" />
 	
 	<!-- Trajopt PID control with learning from human corrections. -->
-	<node name="feature_elicitator" pkg="feature_learning" type="feature_elicitator.py" output="screen"/>
+	<node name="feature_elicitator" pkg="FERL" type="feature_elicitator.py" output="screen"/>
 
 </launch>
 

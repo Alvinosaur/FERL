@@ -4,8 +4,8 @@ setup:
     object_centers: {'HUMAN_CENTER': [-0.2,-0.5,0.6], 'LAPTOP_CENTER': [0.0,-0.8,0.0]}
     feat_list: ["table"]
     feat_weights: [0.0]
-    start: [104.2, 151.6, 183.8, 101.8, 224.2, 216.9, 310.8]
-    goal: [210.8, 101.6, 192.0, 114.7, 222.2, 246.1, 322.0]
+    start: [18.007547859928497, 18.122616056875703, 184.50277989853055, 277.3160348692994, 178.68283034827607, 80.13889639970475, 292.61929227076644]
+    goal: [-18.007547859928497, 18.122616056875703, 184.50277989853055, 277.3160348692994, 178.68283034827607, 80.13889639970475, 292.61929227076644]
     goal_pose: None #[-0.46513, 0.29041, 0.69497]
     T: 20.0
     timestep: 0.5
@@ -16,7 +16,7 @@ setup:
     FEAT_RANGE: {'table':0.98, 'coffee':1.0, 'laptop':0.3, 'human':0.3, 'efficiency':0.22, 'proxemics': 0.3, 'betweenobjects': 0.2}
     LF_dict: {'bet_data': 5, 'sin': False, 'cos': False, 'rpy': False, 'lowdim': False, 'EErot': True, 'noxyz': False, 'norot': False, 'noangles': True, '6D_laptop': False, '6D_human': False, '9D_coffee': False}
     CONFIDENCE_THRESHOLD: 1.0
-    N_QUERIES: 10
+    N_QUERIES: 3
     nb_layers: 3
     nb_units: 128
 
@@ -32,7 +32,7 @@ controller:
     p_gain: 50.0
     i_gain: 0.0
     d_gain: 20.0
-    epsilon: 0.10
+    epsilon: 2.0
     max_cmd: 40.0
 
 learner:

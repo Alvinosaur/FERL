@@ -58,8 +58,8 @@ class Environment(object):
 		# Initialize the utility function weight vector.
 		self.weights = feat_weights
 
-        # Initialize LF_dict optionally for learned features.
-        self.LF_dict = LF_dict
+		# Initialize LF_dict optionally for learned features.
+		self.LF_dict = LF_dict
 
 	# -- Compute features for all waypoints in trajectory. -- #
 	def featurize(self, waypts, feat_idx=None):

@@ -56,8 +56,8 @@ class FeatureElicitator():
         # Publish to ROS at 100hz.
         r = rospy.Rate(100)
 
-        print "----------------------------------"
-        print "Moving robot, type Q to quit:"
+        print("----------------------------------")
+        print("Moving robot, type Q to quit:")
 
         while not rospy.is_shutdown():
 
@@ -76,7 +76,7 @@ class FeatureElicitator():
             self.is_intervene_pub.publish(self.interaction_mode)  # True during intervention
             r.sleep()
 
-        print "----------------------------------"
+        print("----------------------------------")
         ros_utils.stop_admittance_mode(self.prefix)
 
     def load_parameters(self):
@@ -257,7 +257,7 @@ class FeatureElicitator():
                 print(max(betas))
                 if False and max(betas) < self.CONFIDENCE_THRESHOLD:
                     # We must learn a new feature that passes CONFIDENCE_THRESHOLD before resuming.
-                    print "The robot does not understand the input!"
+                    print("The robot does not understand the input!")
                     self.feature_learning_mode = True
                     feature_learning_timestamp = time.time()
                     input_size = len(self.environment.raw_features(torque_curr))
@@ -265,16 +265,16 @@ class FeatureElicitator():
                     while True:
                         # Keep asking for input until we're happy.
                         for i in range(self.N_QUERIES):
-                            print "Need more data to learn the feature!"
+                            print ("Need more data to learn the feature!")
                             self.feature_data = []
 
                             # Request the person to place the robot in a low feature value state.
-                            print "Place the robot in a low feature value state and press ENTER when ready."
+                            print ("Place the robot in a low feature value state and press ENTER when ready.")
                             line = raw_input()
                             self.track_data = True
 
                             # Request the person to move the robot to a high feature value state.
-                            print "Move the robot in a high feature value state and press ENTER when ready."
+                            print ("Move the robot in a high feature value state and press ENTER when ready.")
                             line = raw_input()
                             self.track_data = False
 
@@ -287,7 +287,7 @@ class FeatureElicitator():
                             while np.linalg.norm(feature_data[hi] - feature_data[hi - 1]) < 0.01 and hi > 0:
                                 hi -= 1
                             feature_data = feature_data[lo:hi+1, :]
-                            print "Collected {} samples out of {}.".format(feature_data.shape[0], len(self.feature_data))
+                            print ("Collected {} samples out of {}.".format(feature_data.shape[0], len(self.feature_data)))
 
                             # Provide optional start and end labels.
                             start_label = 0.0
@@ -313,7 +313,7 @@ class FeatureElicitator():
                         print("after train")
 
                         # Check if we're happy with the input.
-                        print "Are you happy with the training? (yes/no)"
+                        print ("Are you happy with the training? (yes/no)")
                         line = raw_input()
                         if line == "yes" or line == "Y" or line == "y":
                             break

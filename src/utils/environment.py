@@ -1,6 +1,11 @@
 import torch
 import os
-
+import numpy as np
+import math
+from .learned_feature import LearnedFeature
+from kinova_robot import KinovaRobot   # NOTE: symlink with opa/kinova_robot.py
+import sys
+sys.path.append("/usr/local/lib/openrave0.53-plugins")
 import openravepy
 from openravepy import *
 
@@ -14,21 +19,10 @@ class Environment(object):
 	functionality needed for custom features and constraints.
 	"""
 	def __init__(self, model_filename, object_centers, feat_list, feat_range, feat_weights, LF_dict=None, viewer=True):
-		# ---- Create environment ---- #
-		self.env, self.robot = initialize(model_filename, viewer=viewer)
-
 		# Insert any objects you want into environment.
+		self.robot = KinovaRobot()
 		self.bodies = []
 		self.object_centers = object_centers
-		plotTable(self.env)
-		plotTableMount(self.env, self.bodies)
-		plotCabinet(self.env)
-		for center in object_centers.keys():
-			if center == "LAPTOP_CENTER":
-				plotLaptop(self.env, self.bodies, object_centers[center])
-			else:
-				plotSphere(self.env, self.bodies, object_centers[center], 0.015)
-
 		# Create the initial feature function list.
 		self.feature_func_list = []
 		self.feature_list = feat_list
@@ -135,7 +129,7 @@ class Environment(object):
 			orientations = np.array(robotToOrientation(self.robot))
 			return np.reshape(np.concatenate((waypt.squeeze(), orientations.flatten(), coords.flatten(), object_coords.flatten())), (-1,))
 
-	def get_torch_transforms(self, waypt):
+	def get_torch_transforms_OLD(self, waypt):
 		"""
 		Computes torch transforms for given waypoint.
 		---
@@ -218,6 +212,25 @@ class Environment(object):
 		Tall = torch.cat((Tall, (T07 * sign3).unsqueeze(0)))
 
 		return Tall
+
+	def get_torch_transforms(self, waypt):
+		"""
+		Computes torch transforms for given waypoint.
+		---
+        Params:
+            waypt -- single waypoint
+        Returns:
+            Tall -- Transform in torch for every joint (7D)
+		"""
+		joint_poses, ee_pose = self.robot.fk(waypt)
+		Tall = torch.from_numpy(np.vstack(joint_poses))
+
+		return Tall
+
+	# -- Update object center to handle moving objects -- #
+	def update_object_center(self, key, pos):
+		assert key in self.object_centers, "Key " + key + " not found in object_centers"
+		self.object_centers[key] = pos
 
 	# -- Instantiate a new learned feature -- #
 

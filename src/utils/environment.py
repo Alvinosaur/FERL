@@ -20,7 +20,8 @@ class Environment(object):
 	"""
 	def __init__(self, model_filename, object_centers, feat_list, feat_range, feat_weights, LF_dict=None, viewer=True):
 		# Insert any objects you want into environment.
-		self.robot = KinovaRobot()
+		self.env, self.robot = initialize(model_filename, viewer=viewer)
+		self.kinova_robot = KinovaRobot()
 		self.bodies = []
 		self.object_centers = object_centers
 		# Create the initial feature function list.

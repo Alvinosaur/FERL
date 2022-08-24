@@ -25,10 +25,10 @@ def twist_transform(theta, w, q):
     :return: The twist transformation.
     """
     w_hat = as_symm_matrix(w)
-    v = -w_hat @ q  # -w x q
+    v = -w_hat.dot(q)  # -w x q
     rot = exp_w_theta = (np.eye(3) + np.sin(theta) * w_hat +
                          (1 - np.cos(theta)) * np.dot(w_hat, w_hat))
-    trans = (np.eye(3) - exp_w_theta) @ (w_hat @ v) + w @ w.T @ v * theta
+    trans = (np.eye(3) - exp_w_theta).dot(w_hat.dot(v)) + w.dot(w.T.dot(v)) * theta
 
     g = np.zeros((4, 4))
     g[:3, :3] = rot
@@ -71,7 +71,7 @@ def inv_transform(g):
     T = g[:3, 3]
     res = np.zeros((4, 4))
     res[:3, :3] = R.T
-    res[:3, 3] = -R.T @ T
+    res[:3, 3] = -R.T.dot(T)
     res[-1, -1] = 1
     return res
 
@@ -155,7 +155,7 @@ class KinovaRobot(object):
                    self.q4, self.q5, self.q6, self.q7]
 
         self.w_hats = [as_symm_matrix(self.ws[i]) for i in range(7)]
-        self.vs = [(-self.w_hats[i] @ self.qs[i])[:, np.newaxis]
+        self.vs = [(-self.w_hats[i].dot(self.qs[i]))[:, np.newaxis]
                    for i in range(7)]
         self.twists = [np.vstack([v, w]) for v, w in zip(self.vs, self.ws)]
 
@@ -170,7 +170,7 @@ class KinovaRobot(object):
         trans = g[:3, 3]
         adj_g = np.zeros((6, 6))
         adj_g[0:3, 0:3] = rot
-        adj_g[0:3, 3:] = as_symm_matrix(trans) @ rot
+        adj_g[0:3, 3:] = as_symm_matrix(trans).dot(rot)
         adj_g[3:, 3:] = rot
         return adj_g
 
@@ -189,9 +189,9 @@ class KinovaRobot(object):
 
         joint_transforms = [twist_transform(
             thetas[i], self.ws[i], self.qs[i]) for i in range(7)]
-        ee_pose = reduce((lambda x, y: x @ y), joint_transforms) @ self.ee_g0
+        ee_pose = reduce((lambda x, y: x.dot(y)), joint_transforms).dot(self.ee_g0)
         joint_transforms = [
-            g0 @ M for (g0, M) in zip(self.joint_g0s, joint_transforms)]
+            g0.dot(M) for (g0, M) in zip(self.joint_g0s, joint_transforms)]
         return joint_transforms, ee_pose
 
     def calc_jacobian(self, thetas):
@@ -226,8 +226,8 @@ class KinovaRobot(object):
         g = self.ee_g0
         for i in range(6, -1, -1):
             twist = self.twists[i]
-            g = joint_transforms[i] @ g
-            twist = self.adjoint_transform(g) @ twist
+            g = joint_transforms[i].dot(g)
+            twist = self.adjoint_transform(g).dot(twist)
             jacobian[:, i] = twist.flatten()
 
         return jacobian
@@ -273,13 +273,13 @@ class KinovaRobot(object):
         return q1_0 * quat2_vec - quat2_0 * q1_vec - np.cross(quat2_vec, q1_vec)
 
     def jacobian_transpose_method(self, jacobian, EE_error):
-        return jacobian.T @ EE_error
+        return jacobian.T.dot(EE_error)
 
     def jacobian_pseudoinv_method(self, jacobian, EE_error):
-        return jacobian.T @ np.linalg.inv(jacobian @ jacobian.T) @ EE_error
+        return jacobian.T.dot(np.linalg.inv(jacobian.dot(jacobian.T)).dot(EE_error))
 
     def damped_least_squares_method(self, jacobian, EE_error, damping_factor=0.01):
-        return jacobian.T @ np.linalg.inv(jacobian @ jacobian.T + damping_factor * np.eye(jacobian.shape[0])) @ EE_error
+        return jacobian.T.dot(np.linalg.inv(jacobian.dot(jacobian.T) + damping_factor * np.eye(jacobian.shape[0])).dot(EE_error))
 
     def calc_EE_error(self, xs, xd):
         pos_error = xd[:3] - xs[:3]
@@ -341,7 +341,7 @@ def test():
     zero_config_joints, zero_config_ee = robot.fk(q)
     print("Joint poses:")
     for i, M in enumerate(zero_config_joints):
-        print(f"J{i}", M)
+        print("J"  + i, M)
 
     print("EE: ", zero_config_ee)
 

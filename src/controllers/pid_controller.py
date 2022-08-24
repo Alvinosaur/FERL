@@ -69,8 +69,8 @@ class PIDController(object):
 			dist_from_start = np.fabs(dist_from_start)
 
 			# Check if every joint is close enough to start configuration.
-			print([dist_from_start[i] < self.epsilon for i in range(7)])
-			is_at_start = all([dist_from_start[i] < self.epsilon for i in range(7)])
+			# print([dist_from_start[i] < self.epsilon for i in range(7)])
+			is_at_start = all([dist_from_start[i] < self.epsilon for i in range(6)])
 			if is_at_start:
 				self.path_start_T = time.time()
 				print("At start")
@@ -86,9 +86,10 @@ class PIDController(object):
 				dist_from_goal = np.fabs(dist_from_goal)
 
 				# Check if every joint is close enough to goal configuration.
-				is_at_goal = all([dist_from_goal[i] < self.epsilon for i in range(7)])
+				is_at_goal = all([dist_from_goal[i] < self.epsilon for i in range(6)])
 				if is_at_goal:
 					self.path_end_T = time.time()
+					print("At end")
 
 		# Update cmd from PID based on current position.
 		error = -((self.target_pos - current_pos + math.pi)%(2*math.pi) - math.pi)

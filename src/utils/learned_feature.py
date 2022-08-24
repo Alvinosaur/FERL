@@ -9,7 +9,6 @@ from transform_input import transform_input, get_subranges
 from networks import DNN
 from torch.utils.data import Dataset, DataLoader
 
-
 class LearnedFeature(object):
 	"""
 	Learned Feature Class contains the feature function as well as data and training functionality.
@@ -55,6 +54,7 @@ class LearnedFeature(object):
 				self.models.append(DNN(nb_layers, nb_units, sub_range[1] - sub_range[0]))
 		else:
 			self.models.append(DNN(nb_layers, nb_units, self.subspaces_list[-1][1]))
+
 
 	def function(self, x, model=None, torchify=False, norm=False):
 		"""
@@ -208,14 +208,15 @@ class LearnedFeature(object):
 			print("No subspace selection performed.")
 			return optimizers[0]
 
-		train_losses = [[] for _ in range(len(self.subspaces_list))]
-		test_losses = [[] for _ in range(len(self.subspaces_list))]
+		train_losses = [[] for _ in range(len(self.models))]
+		test_losses = [[] for _ in range(len(self.models))]
 
 		# check if any non-standard label is used
 		norm_per_epoch = False
 		if sum([l != 0 for l in self.start_labels]) > 0 or sum([l != 1 for l in self.end_labels]) > 0:
 			norm_per_epoch = True
 
+		assert len(self.models) > 0
 		with trange(epochs) as T:
 			for t in T:
 				# Description will be displayed on the left

@@ -7,8 +7,8 @@ The novelty is that it contains a protocol for elicitating new features from
 human input provided to the robot.
 """
 import torch
-import roslib
-roslib.load_manifest('kinova_demo')
+# import roslib
+# roslib.load_manifest('kinova_demo')
 
 import rospy
 import math
@@ -17,8 +17,8 @@ import select
 import os
 import time
 
-import kinova_msgs.msg
-from kinova_msgs.srv import *
+# import kinova_msgs.msg
+# from kinova_msgs.srv import *
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Bool, Float32, Float64MultiArray
 
@@ -59,11 +59,12 @@ class FeatureElicitator():
         /$prefix$/in/joint_velocity	- Jaco commanded joint velocities
     """
 
-    def __init__(self):
+    def __init__(self, environment):
         # Create ROS node.
         rospy.init_node("feature_elicitator")
 
         # Load parameters and set up subscribers/publishers.
+        self.environment = environment
         self.load_parameters()
         self.register_callbacks()
 
@@ -88,8 +89,10 @@ class FeatureElicitator():
                     break
                 elif line == "i":
                     self.interacting = not self.interacting
-                    self.is_intervene_pub.publish(
-                        self.interaction_mode)  # True during intervention
+                    for _ in range(5):
+                        self.is_intervene_pub.publish(
+                            self.interacting or self.interaction_mode)  # True during intervention
+                rospy.sleep(0.1)
             if self.curr_pos is None:
                 continue
             self.cmd = np.clip(self.cmd, -0.5, 0.5)
@@ -112,8 +115,8 @@ class FeatureElicitator():
         self.prefix = rospy.get_param("setup/prefix")
         pick = rospy.get_param("setup/start")
         place = rospy.get_param("setup/goal")
-        self.start = np.array(pick) * (math.pi / 180.0)
-        self.goal = np.array(place) * (math.pi / 180.0)
+        self.start_joints_rad = np.array(pick) * (math.pi / 180.0)
+        self.goal_joints_rad = np.array(place) * (math.pi / 180.0)
         self.goal_pose = None if rospy.get_param(
             "setup/goal_pose") == "None" else rospy.get_param("setup/goal_pose")
         self.T = rospy.get_param("setup/T")
@@ -131,15 +134,8 @@ class FeatureElicitator():
 
         # Openrave parameters for the environment.
         model_filename = rospy.get_param("setup/model_filename")
-        object_centers = rospy.get_param("setup/object_centers")
-        feat_list = rospy.get_param("setup/feat_list")
-        weights = rospy.get_param("setup/feat_weights")
-        FEAT_RANGE = rospy.get_param("setup/FEAT_RANGE")
-        feat_range = [FEAT_RANGE[feat_list[feat]]
-                      for feat in range(len(feat_list))]
         LF_dict = rospy.get_param("setup/LF_dict")
-        self.environment = Environment(
-            model_filename, object_centers, feat_list, feat_range, np.array(weights), LF_dict)
+        self.environment.setup(model_filename=model_filename, LF_dict=LF_dict)
 
         # ----- Planner Setup ----- #
         # Retrieve the planner specific parameters.
@@ -155,8 +151,7 @@ class FeatureElicitator():
             raise Exception('Planner {} not implemented.'.format(planner_type))
 
         self.traj = self.planner.replan(
-            self.start, self.goal, self.goal_pose, self.T, self.timestep)
-        self.traj_plan = self.traj.downsample(self.planner.num_waypts)
+            self.start_joints_rad, self.goal_joints_rad, self.goal_pose, self.T, self.timestep)
 
         # Track if you have reached the start/goal of the path.
         self.reached_start = False
@@ -206,7 +201,8 @@ class FeatureElicitator():
         # ----- Learner Setup ----- #
         constants = {}
         constants["step_size"] = rospy.get_param("learner/step_size")
-        constants["P_beta"] = rospy.get_param("learner/P_beta")
+        constants["P_beta"] = rospy.get_param("lea"
+                                              "rner/P_beta")
         constants["alpha"] = rospy.get_param("learner/alpha")
         constants["n"] = rospy.get_param("learner/n")
         self.feat_method = rospy.get_param("learner/type")
@@ -240,10 +236,8 @@ class FeatureElicitator():
         appropriate torque command to move the robot to the target.
         """
         # Read the current joint angles from the robot.
-        curr_pos = np.array(msg.data).reshape((7, 1))
+        curr_pos = np.array(msg.data).reshape((7, 1)) * (math.pi / 180.0)
 
-        # Convert to radians.
-        curr_pos = curr_pos * (math.pi / 180.0)
         self.curr_pos = curr_pos
         # Check if we are in feature learning mode.
         if self.feature_learning_mode:
@@ -298,8 +292,15 @@ class FeatureElicitator():
         else:
             if self.interaction_mode == True:
                 #  save interaction data, traj, time
-                if not os.path.exists("saved_data"): 
+                if not os.path.exists("saved_data"):
                     os.makedirs("saved_data")
+
+                saved_traj = np.load(
+                    "/mnt/storage/catkin_ws/src/FERL/src/origial_traj.npz", allow_pickle=True)
+                self.traj = Trajectory(
+                    saved_traj['ee_pose_traj'], saved_traj['timesteps_traj'])
+                self.traj_plan = self.traj.downsample(self.planner.num_waypts)
+
                 np.savez("saved_data/interaction_datas.npz",
                          interaction_data=self.interaction_data,
                          interaction_pose_traj=self.interaction_pose_traj,
@@ -318,7 +319,7 @@ class FeatureElicitator():
                     self.nb_layers, self.nb_units)
 
                 # Keep asking for input until we're happy.
-                for i in range(self.N_QUERIES):
+                for query_i in range(self.N_QUERIES):
                     print "Need more data to learn the feature!"
                     self.feature_data = []
 
@@ -340,6 +341,7 @@ class FeatureElicitator():
                         lo += 1
                     while np.linalg.norm(feature_data[hi] - feature_data[hi - 1]) < 0.01 and hi > 0:
                         hi -= 1
+                    print(feature_data)
                     feature_data = feature_data[lo:hi + 1, :]
                     print "Collected {} samples out of {}.".format(feature_data.shape[0], len(self.feature_data))
 
@@ -359,7 +361,7 @@ class FeatureElicitator():
                         end_label = float(i) / 10.0
 
                     # Save newly collected data
-                    np.savez("saved_data/feat_trace_%d.npz" % i,
+                    np.savez("saved_data/feat_trace_%d.npz" % query_i,
                              start_label=[start_label],
                              end_label=[end_label],
                              processed_feat_data=feature_data,
@@ -396,8 +398,9 @@ class FeatureElicitator():
                 for i in range(len(self.interaction_data)):
                     self.learner.learn_weights(
                         self.traj, self.interaction_data[i], self.interaction_time[i], betas)
+
                 self.traj = self.planner.replan(
-                    self.start, self.goal, self.goal_pose, self.T, self.timestep, seed=self.traj_plan.waypts)
+                    self.start_joints_rad, self.goal_joints_rad, self.goal_pose, self.T, self.timestep, seed=self.traj_plan.waypts)
                 self.traj_plan = self.traj.downsample(self.planner.num_waypts)
                 self.controller.set_trajectory(self.traj)
 

@@ -13,6 +13,8 @@ CAN_ID = 1
 # Item masses
 BOX_MASS = 0.3
 CAN_MASS = 1.0
+SOME_POSE = np.array([0, 0, 0, 0, 0, 0, 1])
+
 
 def add_paths():
     sys.path.insert(0, "/home/ruic/Documents/opa")
@@ -25,6 +27,11 @@ HOME_POSE = np.array([0.373, 0.1, 0.13, 0.707, 0.707, 0, 0])
 HOME_JOINTS = np.array([-0.705, 0.952, -1.663, -1.927, 2.131, 1.252, -0.438])
 POS_DIM = 3
 DROP_OFF_OFFSET = np.array([0.0, 0.0, -0.1])
+
+# Only for ablation studies requiring predefined features and
+# evaluation of final behavior
+DESIRED_ROT_OFFSET = R.from_euler("XYZ", [0, 0, np.pi]).as_quat()
+
 T = 20.0  # taken from FERL yaml file
 
 item_ids = [
